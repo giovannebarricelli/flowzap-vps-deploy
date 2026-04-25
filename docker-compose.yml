@@ -1,0 +1,7 @@
+services:
+  flowzap-front:
+    build: .
+    container_name: flowzap-v3-front
+    ports:
+      - "8080:80"
+    restart: always
