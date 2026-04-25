@@ -1,7 +1,8 @@
+version: '3'
 services:
-  flowzap-front:
+  luxury_front:
     build: .
-    container_name: flowzap-v3-front
-    ports:
-      - "8080:80"
+    container_name: luxury_gold_front
     restart: always
+    ports:
+      - "3000:80"
