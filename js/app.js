@@ -1,9 +1,4 @@
-// Configurações Globais
-const CONFIG = {
-    API_URL: "https://api.flowzap.store",
-    MIN_DURATION: 2.5
-};
-
+// --- REFERÊNCIAS DA INTERFACE ---
 const authArea = document.getElementById('authArea');
 const panelArea = document.getElementById('panelArea');
 const messageEl = document.getElementById('message');
@@ -14,31 +9,40 @@ const logContent = document.getElementById('logContent');
 let isPaused = false;
 let isRunning = false;
 
-// --- LÓGICA DE LOGIN ---
+// --- LÓGICA DE LOGIN E VALIDAÇÃO ---
 document.getElementById('codeForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const code = document.getElementById('codeInput').value.trim();
+    const instanciaDigitada = document.getElementById('codeInput').value.trim();
 
-    if (code.toLowerCase() === 'teste1') {
+    if (instanciaDigitada.toLowerCase() === 'teste1') {
         renderPanel('MODO_TESTE');
         return;
     }
 
-    messageEl.textContent = "Validando instância...";
+    messageEl.textContent = "Validando instância na Evolution API...";
+
     try {
-        const res = await fetch(`${CONFIG.API_URL}/instance/validate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code })
+        const res = await fetch(`${window.APP_CONFIG.API_URL}/instance/fetchInstances`, {
+            method: 'GET',
+            headers: { 
+                'apikey': window.APP_CONFIG.API_KEY 
+            }
         });
-        const data = await res.json();
-        if (data.valid || data.success) {
-            renderPanel(code);
+
+        if (!res.ok) throw new Error("Erro na API");
+
+        const instances = await res.json();
+        const instanceFound = instances.find(i => i.instanceName === instanciaDigitada);
+
+        if (instanceFound && instanceFound.status === 'open') {
+            renderPanel(instanciaDigitada);
+        } else if (instanceFound) {
+            messageEl.textContent = "WhatsApp desconectado na Evolution.";
         } else {
-            messageEl.textContent = "Instância inválida.";
+            messageEl.textContent = "Instância não encontrada.";
         }
-    } catch {
-        messageEl.textContent = "Erro ao conectar com o servidor.";
+    } catch (err) {
+        messageEl.textContent = "Erro ao conectar com a VPS.";
     }
 });
 
@@ -71,27 +75,24 @@ document.getElementById('closeLogs').onclick = () => {
 // --- CONTROLE DE DISPARO ---
 btnStart.onclick = () => {
     if (!document.getElementById('phoneList').value.trim()) return alert("Insira contatos!");
-    
     isRunning = true;
     btnStart.classList.add('hidden');
     controlsRow.classList.remove('hidden');
-    addLog("Campanha iniciada com sucesso.");
+    addLog("Campanha iniciada.");
 };
 
 document.getElementById('btnPause').onclick = function() {
     isPaused = !isPaused;
     this.textContent = isPaused ? "Retomar" : "Pausar";
-    this.style.background = isPaused ? "var(--warning)" : "transparent";
-    this.style.color = isPaused ? "#000" : "var(--warning)";
-    addLog(isPaused ? "Operação Pausada." : "Operação Retomada.", isPaused ? 'error' : 'success');
+    addLog(isPaused ? "Pausado." : "Retomado.");
 };
 
 document.getElementById('btnCancel').onclick = () => {
-    if (confirm("Cancelar todos os disparos?")) {
+    if (confirm("Cancelar?")) {
         isRunning = false;
         btnStart.classList.remove('hidden');
         controlsRow.classList.add('hidden');
-        addLog("Operação cancelada.", "error");
+        addLog("Cancelado.", "error");
     }
 };
 
@@ -99,6 +100,3 @@ document.getElementById('btnLogout').onclick = () => {
     localStorage.removeItem('fz_token');
     window.location.reload();
 };
-
-// Auto-login (Opcional: descomente para persistir sessão)
-// if (localStorage.getItem('fz_token')) renderPanel(localStorage.getItem('fz_token'));
